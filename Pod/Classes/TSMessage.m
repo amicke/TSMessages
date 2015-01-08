@@ -192,13 +192,10 @@ __weak static UIViewController *_defaultViewController;
     __block CGFloat verticalOffset = 0.0f;
     
     void (^addStatusBarHeightToVerticalOffset)() = ^void() {
-        
-        if (currentView.messagePosition == TSMessageNotificationPositionNavBarOverlay){
-            return;
-        }
-        
+        BOOL isPortrait = UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation]);
         CGSize statusBarSize = [UIApplication sharedApplication].statusBarFrame.size;
-        verticalOffset += MIN(statusBarSize.width, statusBarSize.height);
+        CGFloat offset = isPortrait ? statusBarSize.height : statusBarSize.width;
+        verticalOffset += offset;
     };
     
     if ([currentView.viewController isKindOfClass:[UINavigationController class]] || [currentView.viewController.parentViewController isKindOfClass:[UINavigationController class]])
@@ -214,7 +211,7 @@ __weak static UIViewController *_defaultViewController;
         if (!isViewIsUnderStatusBar && currentNavigationController.parentViewController == nil) {
             isViewIsUnderStatusBar = ![TSMessage isNavigationBarInNavigationControllerHidden:currentNavigationController]; // strange but true
         }
-        if (![TSMessage isNavigationBarInNavigationControllerHidden:currentNavigationController] && currentView.messagePosition != TSMessageNotificationPositionNavBarOverlay)
+        if (![TSMessage isNavigationBarInNavigationControllerHidden:currentNavigationController])
         {
             [currentNavigationController.view insertSubview:currentView
                                                belowSubview:[currentNavigationController navigationBar]];
@@ -240,14 +237,12 @@ __weak static UIViewController *_defaultViewController;
     }
     
     CGPoint toPoint;
-    if (currentView.messagePosition != TSMessageNotificationPositionBottom)
+    if (currentView.messagePosition == TSMessageNotificationPositionTop)
     {
         CGFloat navigationbarBottomOfViewController = 0;
         
-        if (self.delegate && [self.delegate respondsToSelector:@selector(messageLocationOfMessageView:)])
-        {
-            navigationbarBottomOfViewController = [self.delegate messageLocationOfMessageView:currentView];
-        }
+        if (currentView.delegate && [currentView.delegate respondsToSelector:@selector(navigationbarBottomOfViewController:)])
+            navigationbarBottomOfViewController = [currentView.delegate navigationbarBottomOfViewController:currentView.viewController];
         
         toPoint = CGPointMake(currentView.center.x,
                               navigationbarBottomOfViewController + verticalOffset + CGRectGetHeight(currentView.frame) / 2.0);
@@ -255,19 +250,11 @@ __weak static UIViewController *_defaultViewController;
     else
     {
         CGFloat y = currentView.viewController.view.bounds.size.height - CGRectGetHeight(currentView.frame) / 2.0;
-        if (!currentView.viewController.navigationController.isToolbarHidden)
-        {
+        if (!currentView.viewController.navigationController.isToolbarHidden) {
             y -= CGRectGetHeight(currentView.viewController.navigationController.toolbar.bounds);
         }
         toPoint = CGPointMake(currentView.center.x, y);
     }
-    
-    if (self.delegate && [self.delegate respondsToSelector:@selector(customizeMessageView:)])
-    {
-        [self.delegate customizeMessageView:currentView];
-    }
-    
-    
     
     dispatch_block_t animationBlock = ^{
         currentView.center = toPoint;
@@ -337,7 +324,7 @@ __weak static UIViewController *_defaultViewController;
                                                object:currentView];
     
     CGPoint fadeOutToPoint;
-    if (currentView.messagePosition != TSMessageNotificationPositionBottom)
+    if (currentView.messagePosition == TSMessageNotificationPositionTop)
     {
         fadeOutToPoint = CGPointMake(currentView.center.x, -CGRectGetHeight(currentView.frame)/2.f);
     }
@@ -403,11 +390,6 @@ __weak static UIViewController *_defaultViewController;
     _defaultViewController = defaultViewController;
 }
 
-+ (void)setDelegate:(id<TSMessageViewProtocol>)delegate
-{
-    [TSMessage sharedMessage].delegate = delegate;
-}
-
 + (void)addCustomDesignFromFileWithName:(NSString *)fileName
 {
     [TSMessageView addNotificationDesignFromFile:fileName];
@@ -432,6 +414,7 @@ __weak static UIViewController *_defaultViewController;
     __strong UIViewController *defaultViewController = _defaultViewController;
     
     if (!defaultViewController) {
+        NSLog(@"TSMessages: It is recommended to set a custom defaultViewController that is used to display the notifications");
         defaultViewController = [UIApplication sharedApplication].keyWindow.rootViewController;
     }
     return defaultViewController;
