@@ -11,7 +11,7 @@
 #import "TSBlurView.h"
 #import "TSMessage.h"
 
-#define TSMessageViewPadding 45.0 
+#define TSMessageViewMinimumPadding 45.0
 
 #define TSDesignFileName @"TSMessagesDefaultDesign"
 
@@ -114,7 +114,11 @@ static NSMutableDictionary *_notificationDesign;
 canBeDismissedByUser:(BOOL)dismissingEnabled
 {
     NSDictionary *notificationDesign = [TSMessageView notificationDesign];
+    NSDictionary *current;
+    NSString *currentString;
     
+    current = [notificationDesign valueForKey:currentString];
+
     if ((self = [self init]))
     {
         _title = title;
@@ -131,8 +135,6 @@ canBeDismissedByUser:(BOOL)dismissingEnabled
         CGFloat screenWidth = self.viewController.view.bounds.size.width;
         CGFloat padding = [self padding];
         
-        NSDictionary *current;
-        NSString *currentString;
         switch (notificationType)
         {
             case TSMessageNotificationTypeMessage:
@@ -159,9 +161,6 @@ canBeDismissedByUser:(BOOL)dismissingEnabled
             default:
                 break;
         }
-        
-        current = [notificationDesign valueForKey:currentString];
-        
         
         if (!image && [[current valueForKey:@"imageName"] length] && [[current valueForKey:@"iconHide"] boolValue])
         {
@@ -366,7 +365,7 @@ canBeDismissedByUser:(BOOL)dismissingEnabled
 
 - (CGFloat)updateHeightOfMessageView
 {
-    CGFloat notificationHeight = TSMessageViewPadding;
+    CGFloat notificationHeight = TSMessageViewMinimumPadding;
     
     CGFloat screenWidth = self.viewController.view.bounds.size.width;
     
@@ -382,7 +381,7 @@ canBeDismissedByUser:(BOOL)dismissingEnabled
         } else {
             self.contentLabel.frame = CGRectMake(self.textSpaceLeft,
                                                  self.titleLabel.frame.origin.y + self.titleLabel.frame.size.height + 5.0,
-                                                 screenWidth - TSMessageViewPadding - self.textSpaceLeft - self.textSpaceRight,
+                                                 screenWidth - TSMessageViewMinimumPadding - self.textSpaceLeft - self.textSpaceRight,
                                                  0.0);
         }
         [self.contentLabel sizeToFit];
